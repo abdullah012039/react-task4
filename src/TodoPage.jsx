@@ -1,59 +1,90 @@
-import {useState} from 'react'
-import { v4 as uuidv4 } from 'uuid'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import style from './TodoPage.module.css'
-import { useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react';
+import useTodos from './useTodos';  // Ensure this path is correct
+import { v4 as uuidv4 } from 'uuid';
+import style from './TodoPage.module.css';
 
 const TodoPage = () => {
-    const [todos, setTodos] = useState([])
-    const [input, setInput] = useState([])
-    const [done, setDone] = useState([])
-    const [edit, setEdit] = useState(false)
-    const [index2, setIndex] = useState(0)
-    const DoneFunction = (index) => {
-        setDone([...done, todos[index]])
-        setTodos(todos.filter(todo => todo != todos[index]))
-    }
-    const DeleteFunction = (index) => { 
-        setTodos(todos.filter(todo => todo != todos[index]))
-    }
-    const EditFunction = (index) => {
-        setInput(todos[index])
-        setIndex(index)
-        setEdit(true)
-    }
-    const UpdateFunction = (index) => {
-        setTodos(todos.map((todo,i) => i == index ? input : todo))
-        setEdit(false)
-    }
-    async function getTodos() {
-        const response = await fetch('https://jsonplaceholder.typicode.com/todos');
-        const data = await response.json();
-        setTodos(data.map(todo => todo.title));
-    }
-    
+    const [input, setInput] = useState('');
+    const [edit, setEdit] = useState(false);
+    const [index2, setIndex] = useState(0);
+    const [done, setDone] = useState([]);
+
+    // Hook usage
+    const { todos2, loading, error, setTodos } = useTodos();
+
+    // Create a ref for the input field
+    const inputRef = useRef(null);
+
+    // Focus the input field on component mount
     useEffect(() => {
-        getTodos()
-    }, [])
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [loading]);
+
+    const DoneFunction = (index) => {
+        setDone((prevDone) => [...prevDone, todos2[index]]);
+        setTodos((prevTodos) => prevTodos.filter((_, i) => i !== index));
+    };
+
+    const DeleteFunction = (index) => {
+        setTodos(todos2.filter(todo => todo !== todos2[index]));
+    };
+
+    const EditFunction = (index) => {
+        setInput(todos2[index]);
+        setIndex(index);
+        setEdit(true);
+    };
+
+    const UpdateFunction = (index) => {
+        setTodos((prevTodos) => 
+            prevTodos.map((todo, i) => (i === index ? input : todo))
+        );
+        setEdit(false);
+    };
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
 
     return (
         <div className={style.page}>
             <h1>Todo List</h1>
-            <input type="text" onChange={(e) => {setInput(e.target.value)}} />
-            <button onClick={() => { edit ? UpdateFunction(index2) : setTodos([...todos, input])}}>{edit && "Update" || "Add"}</button>
+            <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                ref={inputRef} // Attach the ref to the input field
+            />
+            <button onClick={() => (edit ? UpdateFunction(index2) : setTodos([...todos2, input]))}>
+                {edit ? 'Update' : 'Add'}
+            </button>
             <ul className={style.list}>
-            { 
-               todos.length != 0 ? todos.map((todo,index) => (<li key={uuidv4()}>{todo} <div className={style.btns}><button onClick={()=>DoneFunction(index)}> Done </button> <button onClick={()=>DeleteFunction(index)}> Delete </button><button onClick={()=>EditFunction(index)}> Edit </button></div> </li>)) : <li> No todos </li>
-            }
+                {todos2.length ? (
+                    todos2.map((todo, index) => (
+                        <li key={uuidv4()}>
+                            {todo}
+                            <div className={style.btns}>
+                                <button onClick={() => DoneFunction(index)}> Done </button>
+                                <button onClick={() => DeleteFunction(index)}> Delete </button>
+                                <button onClick={() => EditFunction(index)}> Edit </button>
+                            </div>
+                        </li>
+                    ))
+                ) : (
+                    <li>No todos</li>
+                )}
             </ul>
             <h1>Done List</h1>
             <ul className={style.list}>
-            { 
-               done.length != 0 ? done.map((todo,index) => (<li key={uuidv4()}>{todo}</li>)) : <li> No todos </li>
-            }
+                {done.map((todo, index) => (
+                    <li key={uuidv4()}>
+                        {todo}
+                    </li>
+                ))}
             </ul>
         </div>
-    )
-}
-export default TodoPage
+    );
+};
+
+export default TodoPage;

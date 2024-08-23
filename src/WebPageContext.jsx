@@ -20,7 +20,7 @@ const WebPageContext = () => {
         setThemeInLocalStorage(newMode);
         setIsDarkMode(newMode);
     };
-
+    
     useEffect(() => {
         setThemeInLocalStorage(isDarkMode);
     }, [isDarkMode]);
